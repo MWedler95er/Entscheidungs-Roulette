@@ -1,7 +1,7 @@
 # pylint: skip-file
 import dataclasses
 import random
-import game.db_ as db_
+import db_
 
 
 PLAYERS_NUMBER = [] 
@@ -81,21 +81,14 @@ class RussischRollette:
                     print(f"🎉 GEWINNER: {alive_players[0].name}!")
                     ALIVE_PLAYER = str(alive_players[0].name)
                     HEALTH_REMAIN = alive_players[0].health
-                    #print(ALIVE_PLAYER,HEALTH_REMAIN,RELOAD_COUNTER)
                     print("=" * 50)
 
-                    # Gewinner in eine Textdatei schreiben (z. B. für Docker-Übungen)
                     try:
-                        db_.insert_into_db_(ALIVE_PLAYER,RELOAD_COUNTER,PLAYERS_NUMBER,HEALTH_REMAIN)
+                        db_.insert_into_db_(ALIVE_PLAYER, RELOAD_COUNTER, PLAYERS_NUMBER, HEALTH_REMAIN)
                     except OSError as e:
                         print(f"Fehler beim Schreiben in 'db': {e}")
                 else:
                     print("\nNiemand hat überlebt. 😵")
-                    try:
-                        with open("winner.txt", "a", encoding="utf-8") as f:
-                            f.write("Niemand hat überlebt.\n")
-                    except OSError as e:
-                        print(f"Fehler beim Schreiben in 'winner.txt': {e}")
                 return
 
             round_num += 1
@@ -127,8 +120,9 @@ class RussischRollette:
             print("1) Entscheidung hinzufügen")
             print("2) Entscheidungen anzeigen")
             print("3) Spiel starten")
+            print("4) Gewinner anzeigen")
             print("5) Beenden")
-            choice = input("Bitte wähle (1-4): ").strip()
+            choice = input("Bitte wähle (1-5): ").strip()
 
             if choice == "1":
                 print(
@@ -161,7 +155,7 @@ class RussischRollette:
                 self.load_bullet(players=PLAYERS_NUMBER)
                 print("\n🔫 Russisches Entscheidungs-Roulette startet!\n")
 
-                # Spieler/Entscheidungen in kwargs-Form übergeben
+                # Spieler/Entscheidungen in richtiges Format übergeben
                 self.player_counter = {
                     f"PL{idx}": p for idx, p in enumerate(PLAYERS_NUMBER, start=1)
                 }
@@ -179,20 +173,21 @@ class RussischRollette:
                     print("Bitte nur Enter drücken, ohne Text.")
             
             elif choice == "4":
-                break
-                #
-                #
-                #
-                #
+                # Gewinner / vergangene Spiele aus der Datenbank anzeigen
+                db_.list_winners()
 
             elif choice == "5":
                 print("Programm wird beendet.")
                 break
             else:
-                print("Ungültige Eingabe, bitte 1-4 wählen.")
+                print("Ungültige Eingabe, bitte 1-5 wählen.")
 
 
 if __name__ == "__main__":
+    print("Warte auf Datenbank und initialisiere Tabellen ...")
+    db_.init_db()
+    print("Datenbank bereit.")
+
     print("Trage deine Entscheidungen ein, die das Roulette entscheiden soll.")
     game = RussischRollette()
     game.menu()

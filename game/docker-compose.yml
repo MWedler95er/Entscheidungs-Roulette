@@ -1,13 +1,31 @@
 services:
-  roulette:
-    build: .             # Nutze das Dockerfile im aktuellen Ordner
-    container_name: game # Entspricht --name
-    stdin_open: true     # Entspricht -i (interactive)
-    tty: true            # Entspricht -t (terminal)
+  db:
+    image: postgres:16
+    container_name: "game-db"
+    environment:
+      POSTGRES_USER: "game_user"
+      POSTGRES_PASSWORD: "game_password"
+      POSTGRES_DB: "game_db"
     volumes:
-      - .:/app           # Entspricht -v $(pwd):/app
-    develop:
-      watch:
-        - action: sync
-          path: ./game.py
-          target: /app/game.py
+      - "pgdata:/var/lib/postgresql/data"
+    restart: "no"
+
+  roulette:
+    build: .
+    container_name: "game"
+    stdin_open: true   # STDIN offen halten (für input())
+    tty: true          # TTY für interaktives Terminal
+    depends_on:
+      - "db"
+    environment:
+      DB_USER: "game_user"
+      DB_PASSWORD: "game_password"
+      DB_HOST: "db"
+      DB_PORT: "5432"
+      DB_NAME: "game_db"
+    volumes:
+      - ".:/app"
+    restart: "no"
+
+volumes:
+  pgdata:
