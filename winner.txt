@@ -1,0 +1,18 @@
+Gewinner: rauchen
+Niemand hat überlebt.
+Gewinner: a
+Gewinner: c
+Gewinner: c
+Gewinner: b
+Gewinner: b
+Niemand hat überlebt.
+Gewinner: 3
+Gewinner: 3
+Gewinner: a
+Gewinner: c
+Gewinner: a
+Gewinner: f
+Gewinner: a
+Gewinner: 1
+Gewinner: hallo
+Niemand hat überlebt.
