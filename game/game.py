@@ -1,7 +1,7 @@
 # pylint: skip-file
 import dataclasses
 import random
-import db_
+import game.db_ as db_
 
 
 PLAYERS_NUMBER = [] 
