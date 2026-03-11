@@ -45,7 +45,7 @@ def insert_into_db_(ALIVE_PLAYER, RELOAD_COUNTER, PLAYERS_NUMBER, HEALTH_REMAIN)
         session.commit()
 
 def list_winners() -> None:
-    """Liest alle Gewinner aus der DB und gibt sie auf der Konsole aus."""
+    """Read all winners from the DB and print them to the console."""
     with Session(engine) as session:
         results = session.query(Winner_Game).order_by(Winner_Game.id).all()
 
