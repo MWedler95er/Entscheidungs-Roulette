@@ -1,25 +1,30 @@
-from sqlalchemy import String, Integer, create_engine
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, Session
+"""Database models and helper functions for the decision roulette game."""
+
 import os
-import time
-import typing
+
+from sqlalchemy import Integer, String, create_engine
+from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 
 
-class Base(DeclarativeBase):
-    pass
+class Base(DeclarativeBase):  # pylint: disable=too-few-public-methods
+    """Base declarative class for all ORM models."""
 
-class Winner_Game(Base):
+
+class WinnerGame(Base):  # pylint: disable=too-few-public-methods
+    """ORM model representing a single finished game (winner statistics)."""
+
     __tablename__ = "winner"
-    id: Mapped[int]= mapped_column(primary_key=True)
-    round_w: Mapped[str]= mapped_column(String(50))
+    id: Mapped[int] = mapped_column(primary_key=True)
+    round_w: Mapped[str] = mapped_column(String(50))
     play_rounds: Mapped[int] = mapped_column(Integer)
     player_number: Mapped[int] = mapped_column(Integer)
     winner_health: Mapped[int] = mapped_column(Integer)
 
+
 # Defaults for docker-compose
 DB_USER = os.getenv("DB_USER", "game_user")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "game_password")
-DB_HOST = os.getenv("DB_HOST", "db")  
+DB_HOST = os.getenv("DB_HOST", "db")
 DB_PORT = os.getenv("DB_PORT", "5432")
 DB_NAME = os.getenv("DB_NAME", "game_db")
 
@@ -27,27 +32,35 @@ URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 engine = create_engine(URL, echo=False)
 
+
 def init_db() -> None:
-    # Create tables -> fail fast if the DB is not reachable.
+    """Initialise the database by creating all tables if they do not exist."""
     Base.metadata.create_all(engine)
     print("Tabellen wurden (falls nicht vorhanden) erstellt!")
 
 
-def insert_into_db_(ALIVE_PLAYER, RELOAD_COUNTER, PLAYERS_NUMBER, HEALTH_REMAIN)-> None:
+def insert_into_db_(
+    alive_player: str,
+    reload_counter: int,
+    player_number: list,
+    health_remain: int,
+) -> None:
+    """Insert a finished game (winner information) into the database."""
     with Session(engine) as session:
-        new_entry = Winner_Game(
-            round_w=ALIVE_PLAYER,
-            play_rounds=RELOAD_COUNTER,
-            player_number=len(PLAYERS_NUMBER),
-            winner_health=HEALTH_REMAIN,
+        new_entry = WinnerGame(
+            round_w=alive_player,
+            play_rounds=reload_counter,
+            player_number=len(player_number),
+            winner_health=health_remain,
         )
         session.add(new_entry)
         session.commit()
 
+
 def list_winners() -> None:
     """Read all winners from the DB and print them to the console."""
     with Session(engine) as session:
-        results = session.query(Winner_Game).order_by(Winner_Game.id).all()
+        results = session.query(WinnerGame).order_by(WinnerGame.id).all()
 
         if not results:
             print("\nNoch keine gespeicherten Spiele in der Datenbank.")

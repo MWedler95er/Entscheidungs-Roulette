@@ -1,6 +1,7 @@
 # pylint: skip-file
 import dataclasses
 import random
+
 import db_
 
 
@@ -17,23 +18,19 @@ class DecisionRoulette:
         self.reload_counter = 0
         self.players: list[Player] = []
         self.player_counter: dict[str, Player] = {}
-        
 
     def push(self, item):
         self.stapel.append(item)
-
 
     def pop(self):
         if not self.stapel:
             raise IndexError("Stapel ist leer")
         return self.stapel.pop()
 
-
     def peek(self):
         if not self.stapel:
             raise IndexError("Stapel ist leer")
         return self.stapel[-1]
-
 
     def load_bullet(self, players=None):
         self.stapel = [random.randint(0, 1) for _ in range(10)]
@@ -48,7 +45,6 @@ class DecisionRoulette:
                 f"Kritische Trefferchance aller Spieler wurde um 0.1 erhöht."
             )
 
-
     def shoot(self, player):
         bullet = self.pop()
 
@@ -60,14 +56,12 @@ class DecisionRoulette:
             return "BANG!"
         return "Klick! Glück gehabt."
 
-    
     def _wait_for_enter(self) -> None:
         while True:
             eingabe = input("\nDrücke Enter, um zum Menü zurückzukehren: ")
             if eingabe == "":
                 break
             print("Bitte nur Enter drücken, ohne Text.")
-
 
     def _get_alive_players(self) -> list[Player]:
         """Return a list of all players with health > 0."""
@@ -145,7 +139,6 @@ class DecisionRoulette:
             # every alive player shoots
             for player in alive_players:
                 self._player_shoots(player, alive_players)
-
 
     def _print_menu(self) -> None:
         """Show the main menu"""
