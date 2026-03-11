@@ -4,13 +4,6 @@ import random
 import db_
 
 
-PLAYERS_NUMBER = [] 
-HEALTH_REMAIN = 0
-RELOAD_COUNTER = 0
-ALIVE_PLAYER = ""
-
-
-
 @dataclasses.dataclass
 class Player:
     name: str
@@ -18,41 +11,47 @@ class Player:
     krit_chance: float = 0.2
 
 
-class RussischRollette:
+class DecisionRoulette:
     def __init__(self):
         self.stapel = []
         self.reload_counter = 0
+        self.players: list[Player] = []
+        self.player_counter: dict[str, Player] = {}
+        
 
     def push(self, item):
         self.stapel.append(item)
+
 
     def pop(self):
         if not self.stapel:
             raise IndexError("Stapel ist leer")
         return self.stapel.pop()
 
+
     def peek(self):
         if not self.stapel:
             raise IndexError("Stapel ist leer")
         return self.stapel[-1]
 
+
     def load_bullet(self, players=None):
-        global RELOAD_COUNTER
         self.stapel = [random.randint(0, 1) for _ in range(10)]
         self.reload_counter += 1
-        RELOAD_COUNTER = self.reload_counter
 
         if players:
             for p in players:
-                # Krit-Chance pro Nachladen um 0.1 erhöhen, maximal 1.0
+                # Krit-Chance increase by reload +0.1
                 p.krit_chance = min(p.krit_chance + 0.1, 1.0)
             print(
                 f"\nNachladen #{self.reload_counter}: "
                 f"Kritische Trefferchance aller Spieler wurde um 0.1 erhöht."
             )
 
+
     def shoot(self, player):
         bullet = self.pop()
+
         if bullet == 1:
             if random.random() < player.krit_chance:
                 player.health -= 2
@@ -62,47 +61,59 @@ class RussischRollette:
         return "Klick! Glück gehabt."
 
     
+    def _wait_for_enter(self) -> None:
+        while True:
+            eingabe = input("\nDrücke Enter, um zum Menü zurückzukehren: ")
+            if eingabe == "":
+                break
+            print("Bitte nur Enter drücken, ohne Text.")
+
+
     def game_start(self):
-        global ALIVE_PLAYER
-        global HEALTH_REMAIN
-        global PLAYERS_NUMBER
         if not self.player_counter:
-            raise ValueError("Mindestens ein Spieler ist erforderlich!")
+            raise ValueError("Nicht genügend 'Spieler'!")
 
         round_num = 0
+        # initial Alive-Liste
+        initial_player_count = len(self.player_counter)
+        play = True
 
-        # Solange mehr als ein Spieler lebt, geht das Spiel weiter
-        while True:
+        while play:
             alive_players = [p for p in self.player_counter.values() if p.health > 0]
-            if len(alive_players) <= 1:
-                # Gewinner ermitteln
-                if alive_players:
-                    print("\n" + "=" * 50)
-                    print(f"🎉 GEWINNER: {alive_players[0].name}!")
-                    ALIVE_PLAYER = str(alive_players[0].name)
-                    HEALTH_REMAIN = alive_players[0].health
-                    print("=" * 50)
+            if not alive_players:
+                print("\nNiemand hat überlebt. 😵")
+                play = False
+                break
 
-                    try:
-                        db_.insert_into_db_(ALIVE_PLAYER, RELOAD_COUNTER, PLAYERS_NUMBER, HEALTH_REMAIN)
-                    except OSError as e:
-                        print(f"Fehler beim Schreiben in 'db': {e}")
-                else:
-                    print("\nNiemand hat überlebt. 😵")
-                return
+            if len(alive_players) == 1:
+                winner = alive_players[0]
+                print("\n" + "=" * 50)
+                print(f"🎉 GEWINNER: {winner.name}!")
+                print("=" * 50)
+                try:
+                    db_.insert_into_db_(winner.name, self.reload_counter, range(initial_player_count), winner.health)
+                    print("Speichern erfolgreich.")
+
+                except OSError as e:
+                    print(f"Fehler beim Schreiben in 'db': {e}")
+                play = False
+                break
 
             round_num += 1
             print(f"\n--- Runde {round_num} ---")
 
-            # Wenn Magazin leer ist, neu laden
+            # Magazine empty -> reload
             if not self.stapel:
-                print("\nMagazin leer wird neu geladen...")
+                print("\nMagazin leer, wird neu geladen...")
                 self.load_bullet(players=alive_players)
 
+            # every alive player shoot
             for player in alive_players:
-                # Falls Magazin im Verlauf der Runde leer wird, neu laden
+                if player.health <= 0:
+                    continue  
+
                 if not self.stapel:
-                    print("\nMagazin leer wird neu geladen...")
+                    print("\nMagazin leer, wird neu geladen...")
                     self.load_bullet(players=alive_players)
 
                 result = self.shoot(player)
@@ -112,6 +123,7 @@ class RussischRollette:
                     print("\n" + "=" * 50)
                     print(f"{player.name} ist ausgeschieden!")
                     print("=" * 50)
+
 
     def menu(self):
 
@@ -133,39 +145,37 @@ class RussischRollette:
                 while True:
                     name = input("Entscheidung: ").strip()
                     if not name:
-                        # Leere Eingabe -> zurück ins Hauptmenü
                         print("Eingabe beendet, zurück zum Menü.")
                         break
-                    PLAYERS_NUMBER.append(Player(name=name, health=5))
+                    # neue Entscheidung in die Liste aufnehmen
+                    self.players.append(Player(name=name, health=5))
 
             elif choice == "2":
-                if not PLAYERS_NUMBER:
+                if not self.players:
                     print("\nNoch keine Entscheidungen vorhanden.")
                 else:
                     print("\nAktuelle Entscheidungen:")
-                    for idx, p in enumerate(PLAYERS_NUMBER, start=1):
+                    for idx, p in enumerate(self.players, start=1):
                         print(f"{idx}) {p.name} (Health: {p.health})")
 
             elif choice == "3":
-                if len(PLAYERS_NUMBER) < 2:
+                if len(self.players) < 2:
                     print("Mindestens 2 Entscheidungen werden benötigt, um zu starten.")
                     continue
 
-                # Magazin laden und erste Krit-Erhöhung anwenden
-                self.load_bullet(players=PLAYERS_NUMBER)
+                self.load_bullet(players=self.players)
                 print("\n🔫 Russisches Entscheidungs-Roulette startet!\n")
 
-                # Spieler/Entscheidungen in richtiges Format übergeben
                 self.player_counter = {
-                    f"PL{idx}": p for idx, p in enumerate(PLAYERS_NUMBER, start=1)
+                    f"PL{idx}": p for idx, p in enumerate(self.players, start=1)
                 }
                 print(self.player_counter)
                 self.game_start()
 
-                # Nach dem Spiel alles zurücksetzen
-                PLAYERS_NUMBER.clear()
+                # after game clear list
+                self.players.clear()
 
-                # Warten, bis der Spieler Enter drückt, bevor das Menü wieder erscheint
+                # wait until player presses 'Enter' before the menue reappears
                 while True:
                     eingabe = input("\nDrücke die Enter, um zum Menü zurückzukehren: ")
                     if eingabe == "":
@@ -173,7 +183,7 @@ class RussischRollette:
                     print("Bitte nur Enter drücken, ohne Text.")
             
             elif choice == "4":
-                # Gewinner / vergangene Spiele aus der Datenbank anzeigen
+                # last winner's print from db 
                 db_.list_winners()
 
             elif choice == "5":
@@ -189,5 +199,5 @@ if __name__ == "__main__":
     print("Datenbank bereit.")
 
     print("Trage deine Entscheidungen ein, die das Roulette entscheiden soll.")
-    game = RussischRollette()
+    game = DecisionRoulette()
     game.menu()

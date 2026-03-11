@@ -5,7 +5,6 @@ import time
 import typing
 
 
-# 2. Die Basis-Klasse für unsere Tabellen
 class Base(DeclarativeBase):
     pass
 
@@ -17,10 +16,10 @@ class Winner_Game(Base):
     player_number: Mapped[int] = mapped_column(Integer)
     winner_health: Mapped[int] = mapped_column(Integer)
 
-# DB-Config aus Umgebungsvariablen (mit Defaults für docker-compose)
+# Defaults for docker-compose
 DB_USER = os.getenv("DB_USER", "game_user")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "game_password")
-DB_HOST = os.getenv("DB_HOST", "db")  # Hostname des DB-Containers
+DB_HOST = os.getenv("DB_HOST", "db")  
 DB_PORT = os.getenv("DB_PORT", "5432")
 DB_NAME = os.getenv("DB_NAME", "game_db")
 
@@ -28,23 +27,13 @@ URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 engine = create_engine(URL, echo=False)
 
-def init_db(max_retries: int = 10, delay_seconds: int = 2) -> None:
-    """Wartet auf die DB und legt Tabellen an."""
-    for attempt in range(1, max_retries + 1):
-        try:
-            Base.metadata.create_all(engine)
-            print("Tabellen wurden (falls nicht vorhanden) erstellt!")
-            return
-        except Exception as exc:
-            print(
-                f"DB-Verbindung fehlgeschlagen (Versuch {attempt}/{max_retries}): {exc}"
-            )
-            if attempt == max_retries:
-                print("Gebe auf, DB ist nicht erreichbar.")
-                raise
-            time.sleep(delay_seconds)
+def init_db() -> None:
+    # Create tables -> fail fast if the DB is not reachable.
+    Base.metadata.create_all(engine)
+    print("Tabellen wurden (falls nicht vorhanden) erstellt!")
 
-def insert_into_db_(ALIVE_PLAYER, RELOAD_COUNTER, PLAYERS_NUMBER, HEALTH_REMAIN):
+
+def insert_into_db_(ALIVE_PLAYER, RELOAD_COUNTER, PLAYERS_NUMBER, HEALTH_REMAIN)-> None:
     with Session(engine) as session:
         new_entry = Winner_Game(
             round_w=ALIVE_PLAYER,
