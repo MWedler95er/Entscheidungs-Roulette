@@ -21,6 +21,17 @@ class WinnerGame(Base):  # pylint: disable=too-few-public-methods
     winner_health: Mapped[int] = mapped_column(Integer)
 
 
+class Decisions(Base):  # pylint: disable=too-few-public-methods
+    """ORM model representing a single stored decision entry.
+
+    This class maps individual decision names to the `decisions` database table for persistence.
+    """
+
+    __tablename__ = "decisions"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(50))
+
+
 # Defaults for docker-compose
 DB_USER = os.getenv("DB_USER", "game_user")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "game_password")
@@ -28,7 +39,8 @@ DB_HOST = os.getenv("DB_HOST", "db")
 DB_PORT = os.getenv("DB_PORT", "5432")
 DB_NAME = os.getenv("DB_NAME", "game_db")
 
-URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+# URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+URL = "postgresql://mwedl95er:Plyxpl.yx95@localhost:5432/game_db"
 
 engine = create_engine(URL, echo=False)
 
@@ -39,7 +51,7 @@ def init_db() -> None:
     print("Tabellen wurden (falls nicht vorhanden) erstellt!")
 
 
-def insert_into_db_(
+def insert_winner_into_db_(
     alive_player: str,
     reload_counter: int,
     player_number: list,
@@ -52,6 +64,23 @@ def insert_into_db_(
             play_rounds=reload_counter,
             player_number=len(player_number),
             winner_health=health_remain,
+        )
+        session.add(new_entry)
+        session.commit()
+
+
+def insert_decision_into_db_(decision_name: str) -> None:
+    """Insert a single decision entry into the database.
+
+    This helper function persists the provided decision
+    name as a row in the decisions table.
+
+    Args:
+        decision_name: The textual name of the decision to store.
+    """
+    with Session(engine) as session:
+        new_entry = Decisions(
+            name=decision_name,
         )
         session.add(new_entry)
         session.commit()

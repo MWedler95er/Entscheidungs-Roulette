@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Entscheidungs-Roulette</title>
+    <link rel="stylesheet" href="/static/pico.classless.green.css">
+    <link rel="stylesheet" href="/static/style.css">
+  </head>
+  <body>
+    <h1>Entscheidungs-Roulette</h1>
+
+    <section>
+      <h2>Entscheidungen hinzufügen</h2>
+      <form id="add-form">
+        <input
+          type="text"
+          id="name"
+          placeholder="Neue Entscheidung..."
+          required
+        />
+        <button type="submit">Hinzufügen</button>
+      </form>
+    </section>
+
+    <section>
+      <h2>Aktuelle Entscheidungen</h2>
+      <ul id="players-list">
+        {% for p in players %}
+        <li>{{ p.name }} (Health: {{ p.health }})</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section>
+      <button id="start-game">Spiel starten</button>
+      <div id="result"></div>
+    </section>
+
+    <script>
+      async function reloadPlayers() {
+        const res = await fetch("/players");
+        const data = await res.json();
+        const list = document.getElementById("players-list");
+        list.innerHTML = "";
+        data.forEach((p) => {
+          const li = document.createElement("li");
+          li.textContent = `${p.name} (Health: ${p.health})`;
+          list.appendChild(li);
+        });
+      }
+
+      document
+        .getElementById("add-form")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const nameInput = document.getElementById("name");
+          const name = nameInput.value.trim();
+          if (!name) return;
+
+          await fetch("/add_players", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name }),
+          });
+
+          nameInput.value = "";
+          await reloadPlayers();
+        });
+
+      document
+        .getElementById("start-game")
+        .addEventListener("click", async () => {
+          const res = await fetch("/game/start", { method: "POST" });
+          if (!res.ok) {
+            const err = await res.json();
+            document.getElementById("result").textContent =
+              err.detail || "Fehler beim Starten des Spiels.";
+            return;
+          }
+          const data = await res.json();
+          if (data.winner === null) {
+            document.getElementById("result").textContent =
+              "Niemand hat überlebt.";
+          } else {
+            document.getElementById(
+              "result"
+            ).textContent = `Gewinner: ${data.winner.name} (Health: ${data.winner.health}), Reloads: ${data.reload_counter}`;
+          }
+          await reloadPlayers();
+        });
+    </script>
+  </body>
+</html>

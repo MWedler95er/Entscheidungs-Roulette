@@ -1,0 +1,12 @@
+html {
+    margin: 25px;
+}
+
+h1, h2 {
+    text-align: center;
+}
+
+select {
+    text-align: center;
+    contain: content;
+}

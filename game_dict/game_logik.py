@@ -77,7 +77,7 @@ class DecisionRoulette:
         print(f"🎉 GEWINNER: {winner.name}!")
         print("=" * 50)
         try:
-            db_.insert_into_db_(
+            db_.insert_winner_into_db_(
                 winner.name,
                 self.reload_counter,
                 range(initial_player_count),
@@ -107,8 +107,12 @@ class DecisionRoulette:
             print(f"{player.name} ist ausgeschieden!")
             print("=" * 50)
 
-    def game_start(self) -> None:
-        """Main game loop that runs the decision roulette."""
+    def game_start(self) -> Player | None:
+        """Main game loop that runs the decision roulette.
+
+        Runs the roulette rounds until either no players survive or a single winner remains.
+        Returns the winning Player instance, or None if no one survived.
+        """
         if not self.player_counter:
             raise ValueError("Nicht genügend 'Spieler'!")
 
@@ -123,12 +127,13 @@ class DecisionRoulette:
             if not alive_players:
                 self._handle_no_survivors()
                 play = False
-                break
+                return None
 
             if len(alive_players) == 1:
-                self._handle_winner(alive_players[0], initial_player_count)
+                winner = alive_players[0]
+                self._handle_winner(winner, initial_player_count)
                 play = False
-                break
+                return winner
 
             round_num += 1
             print(f"\n--- Runde {round_num} ---")
@@ -219,13 +224,3 @@ class DecisionRoulette:
                 break
             else:
                 print("Ungültige Eingabe, bitte 1-5 wählen.")
-
-
-if __name__ == "__main__":
-    print("Warte auf Datenbank und initialisiere Tabellen ...")
-    db_.init_db()
-    print("Datenbank bereit.")
-
-    print("Trage deine Entscheidungen ein, die das Roulette entscheiden soll.")
-    game = DecisionRoulette()
-    game.menu()
