@@ -13,7 +13,9 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Projektdateien kopieren
-COPY game.py db_.py .
+COPY game_logik.py db_.py api.py ./
+COPY templates ./templates
+COPY static ./static
 
 # Standard-Befehl: Script ausführen
-CMD ["python", "game.py"]
+CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]

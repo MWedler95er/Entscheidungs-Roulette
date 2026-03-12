@@ -10,9 +10,10 @@ services:
       - "pgdata:/var/lib/postgresql/data"
     restart: "no"
 
+  # CLI-Spiel (wenn du es weiter nutzen willst)
   roulette:
     build: .
-    container_name: "game"
+    container_name: "game-cli"
     stdin_open: true   # STDIN offen halten (für input())
     tty: true          # TTY für interaktives Terminal
     depends_on:
@@ -25,6 +26,24 @@ services:
       DB_NAME: "game_db"
     volumes:
       - ".:/app"
+    # überschreibe den CMD aus dem Dockerfile, damit hier weiter game.py läuft
+    command: ["python", "game.py"]
+    restart: "no"
+
+  # FastAPI + HTML-UI
+  api:
+    build: .
+    container_name: "game-api"
+    depends_on:
+      - "db"
+    environment:
+      DB_USER: "game_user"
+      DB_PASSWORD: "game_password"
+      DB_HOST: "db"
+      DB_PORT: "5432"
+      DB_NAME: "game_db"
+    ports:
+      - "8000:8000"
     restart: "no"
 
 volumes:

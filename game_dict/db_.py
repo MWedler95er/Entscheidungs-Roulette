@@ -39,8 +39,7 @@ DB_HOST = os.getenv("DB_HOST", "db")
 DB_PORT = os.getenv("DB_PORT", "5432")
 DB_NAME = os.getenv("DB_NAME", "game_db")
 
-# URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-URL = "postgresql://mwedl95er:Plyxpl.yx95@localhost:5432/game_db"
+URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 engine = create_engine(URL, echo=False)
 
