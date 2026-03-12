@@ -1,4 +1,4 @@
-# pylint: skip-file
+# pylint: disable=missing-module-docstring
 import dataclasses
 import random
 
@@ -7,12 +7,24 @@ import db_
 
 @dataclasses.dataclass
 class Player:
+    """Represent a single player participating in the decision roulette game.
+
+    This model tracks the player's name, remaining health,
+    and chance for critical hits.
+    """
+
     name: str
     health: int = 3
     krit_chance: float = 0.2
 
 
 class DecisionRoulette:
+    """Encapsulate the core game flow for the decision roulette application.
+
+    This class coordinates player management, magazine handling, shooting rounds,
+    and winner persistence across both CLI and API usage.
+    """
+
     def __init__(self):
         self.stapel = []
         self.reload_counter = 0
@@ -20,19 +32,40 @@ class DecisionRoulette:
         self.player_counter: dict[str, Player] = {}
 
     def push(self, item):
+        """Add a new item to the top of the internal bullet stack.
+
+        This method is used to grow the magazine or stack
+        by appending elements in LIFO order.
+        """
         self.stapel.append(item)
 
     def pop(self):
+        """Remove and return the top item from the internal bullet stack.
+
+        This method retrieves the most recently added
+        element and fails if the stack is empty.
+        """
         if not self.stapel:
             raise IndexError("Stapel ist leer")
         return self.stapel.pop()
 
     def peek(self):
+        """Return the top item from the internal
+        bullet stack without removing it.
+
+        This method allows inspection of the next element that would
+        be popped and fails if the stack is empty.
+        """
         if not self.stapel:
             raise IndexError("Stapel ist leer")
         return self.stapel[-1]
 
     def load_bullet(self, players=None):
+        """Reload the magazine with a new sequence of bullets.
+
+        This method increases the reload counter and optionally
+        boosts the critical hit chance of all players.
+        """
         self.stapel = [random.randint(0, 1) for _ in range(10)]
         self.reload_counter += 1
 
@@ -46,6 +79,17 @@ class DecisionRoulette:
             )
 
     def shoot(self, player):
+        """Simulate a single shot at the given player and update their health.
+
+        This method determines whether the shot is a miss, a normal hit,
+        or a critical hit and returns a descriptive message.
+
+        Args:
+            player: The player who is being shot at and whose health may be reduced.
+
+        Returns:
+            str: A message describing the outcome of the shot.
+        """
         bullet = self.pop()
 
         if bullet == 1:
@@ -57,6 +101,11 @@ class DecisionRoulette:
         return "Klick! Glück gehabt."
 
     def _wait_for_enter(self) -> None:
+        """Pause execution until the user confirms by pressing Enter.
+
+        This helper method loops until only a bare Enter key
+        press is received, ignoring any other input.
+        """
         while True:
             eingabe = input("\nDrücke Enter, um zum Menü zurückzukehren: ")
             if eingabe == "":
@@ -64,15 +113,26 @@ class DecisionRoulette:
             print("Bitte nur Enter drücken, ohne Text.")
 
     def _get_alive_players(self) -> list[Player]:
-        """Return a list of all players with health > 0."""
+        """Return the subset of players who are still alive in the current round.
+
+        A player is considered alive if their health is greater than zero
+        and they remain eligible to continue in the game.
+        """
         return [p for p in self.player_counter.values() if p.health > 0]
 
     def _handle_no_survivors(self) -> None:
-        """Handle the case when no players survived."""
+        """Handle the situation where all players have been eliminated.
+
+        This method prints a summary message indicating that no one survived the game.
+        """
         print("\nNiemand hat überlebt. 😵")
 
     def _handle_winner(self, winner: Player, initial_player_count: int) -> None:
-        """Handle the winner: print result and save to DB."""
+        """Handle the winner of the game by reporting and persisting the result.
+
+        This method announces the winning player to the console and records the
+        game statistics for that winner in the database.
+        """
         print("\n" + "=" * 50)
         print(f"🎉 GEWINNER: {winner.name}!")
         print("=" * 50)
@@ -88,7 +148,11 @@ class DecisionRoulette:
             print(f"Fehler beim Schreiben in 'db': {e}")
 
     def _ensure_magazine_loaded(self, alive_players: list[Player]) -> None:
-        """Reload the magazine if it is empty."""
+        """Ensure the magazine is loaded before the next shot in the round.
+
+        If the internal bullet stack is empty, this helper method reloads it and
+        adjusts player critical hit chances based on the new reload.
+        """
         if not self.stapel:
             print("\nMagazin leer, wird neu geladen...")
             self.load_bullet(players=alive_players)
@@ -110,7 +174,8 @@ class DecisionRoulette:
     def game_start(self) -> Player | None:
         """Main game loop that runs the decision roulette.
 
-        Runs the roulette rounds until either no players survive or a single winner remains.
+        Runs the roulette rounds until either no
+        players survive or a single winner remains.
         Returns the winning Player instance, or None if no one survived.
         """
         if not self.player_counter:
@@ -127,13 +192,12 @@ class DecisionRoulette:
             if not alive_players:
                 self._handle_no_survivors()
                 play = False
-                return None
+                break
 
             if len(alive_players) == 1:
-                winner = alive_players[0]
-                self._handle_winner(winner, initial_player_count)
+                self._handle_winner(alive_players[0], initial_player_count)
                 play = False
-                return winner
+                break
 
             round_num += 1
             print(f"\n--- Runde {round_num} ---")
@@ -144,6 +208,8 @@ class DecisionRoulette:
             # every alive player shoots
             for player in alive_players:
                 self._player_shoots(player, alive_players)
+
+        return alive_players[0]
 
     def _print_menu(self) -> None:
         """Show the main menu"""

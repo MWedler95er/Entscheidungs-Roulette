@@ -55,7 +55,17 @@ app.mount("/static", fastapi.staticfiles.StaticFiles(directory="static"), name="
 
 @app.get("/", response_class=fastapi.responses.HTMLResponse)
 def index(request: fastapi.Request):
-    """simpel HTML-UI for the Decision-Roulette."""
+    """Render and return the main HTML page for the decision roulette game.
+
+    This endpoint serves the initial user interface displaying the current
+    list of players and providing controls to interact with the game.
+
+    Args:
+        request: The incoming HTTP request object used by the template engine.
+
+    Returns:
+        fastapi.responses.HTMLResponse: The rendered index page with the current players.
+    """
     return templates.TemplateResponse(
         "index.html",
         {
@@ -116,10 +126,10 @@ def add_player(player_in: PlayerIn):
             status_code=400, detail="Name darf nicht leer sein."
         )
 
-    # Entscheidung in der DB speichern
+    # Safe the Decisions in a table
     db_.insert_decision_into_db_(decision_name=name)
 
-    # Player im aktuellen Spielzustand anlegen
+    # Player create at the currend game-stage
     player = game_logik.Player(name=name, health=5)
     game_instanz.players.append(player)
 
@@ -143,28 +153,28 @@ def start_game():
     Raises:
         fastapi.HTTPException: If fewer than two players have been added before starting the game.
     """
-    # 1. Sicherstellen, dass genug Spieler da sind
+    # 1. ensure that more than 2 player's
     if len(game_instanz.players) < 2:
         raise fastapi.HTTPException(
             status_code=400,
             detail="Mindestens 2 Entscheidungen werden benötigt, um zu starten.",
         )
 
-    # 2. Magazin laden
+    # 2. Magazin load
     game_instanz.load_bullet(players=game_instanz.players)
 
-    # 3. player_counter der Instanz füllen (so wie in _handle_start_game)
+    # 3. player_counter insort in this instanz
     game_instanz.player_counter = {
         f"PL{idx}": p for idx, p in enumerate(game_instanz.players, start=1)
     }
 
-    # 4. Spiel starten – liefert Gewinner oder None zurück
+    # 4. Game start – return Winner or None
     winner = game_instanz.game_start()
 
-    # 5. players-Liste nach Spielende leeren
+    # 5. emty the player-list
     game_instanz.players.clear()
 
-    # 6. Response aufbauen: nur Gewinner + Reload-Counter
+    # 6. Response: winner + Reload-Counter
     if winner is None:
         winner_out: PlayerOut | None = None
     else:
